@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 // Mock data for the prompt detail
 const mockPromptDetail = {
@@ -200,14 +201,17 @@ export default function PromptDetailPage() {
           <div className="lg:col-span-2">
             {/* Image Gallery */}
             <div className="mb-6">
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-4">
-                <img
+              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-4">
+                <Image
                   src={
                     mockPromptDetail.images[selectedImageIndex] ||
                     '/placeholder.svg'
                   }
                   alt={mockPromptDetail.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 66vw, 100vw"
+                  className="object-cover"
                 />
               </div>
               <div className="flex space-x-2">
@@ -221,10 +225,12 @@ export default function PromptDetailPage() {
                         : 'border-transparent'
                     }`}
                   >
-                    <img
+                    <Image
                       src={image || '/placeholder.svg'}
                       alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      width={80}
+                      height={80}
+                      className="object-cover w-full h-full"
                     />
                   </button>
                 ))}

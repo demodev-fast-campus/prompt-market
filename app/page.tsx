@@ -184,10 +184,11 @@ export default function HomePage() {
 
           {/* Prompt Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {mockPrompts.map((prompt) => (
+            {mockPrompts.map((prompt, index) => (
               <PromptCard
                 key={prompt.id}
                 {...prompt}
+                priority={index === 0}
                 isFavorited={favorites.includes(prompt.id)}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface PromptCardProps {
   id: string;
@@ -24,6 +25,7 @@ interface PromptCardProps {
   isFavorited?: boolean;
   onAddToCart?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
+  priority?: boolean;
 }
 
 export function PromptCard({
@@ -39,16 +41,20 @@ export function PromptCard({
   isFavorited = false,
   onAddToCart,
   onToggleFavorite,
+  priority,
 }: PromptCardProps) {
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
         <div className="relative aspect-video bg-muted rounded-t-lg overflow-hidden">
           {thumbnail ? (
-            <img
+            <Image
               src={thumbnail || '/placeholder.svg'}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              alt={`${title} 썸네일`}
+              fill
+              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+              priority={Boolean(priority)}
+              className="object-cover group-hover:scale-105 transition-transform duration-200"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">

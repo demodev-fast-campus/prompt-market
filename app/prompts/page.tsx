@@ -293,10 +293,11 @@ export default function PromptsPage() {
 
           {/* Prompts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pagedPrompts.map((prompt) => (
+            {pagedPrompts.map((prompt, index) => (
               <PromptCard
                 key={prompt.id}
                 {...prompt}
+                priority={index === 0}
                 isFavorited={favorites.includes(prompt.id)}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}

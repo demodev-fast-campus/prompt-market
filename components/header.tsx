@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { ModeToggle } from '@/components/mode-toggle';
+import { useTranslations } from 'next-intl';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +31,7 @@ export function Header({
   onLogin,
   onLogout,
 }: HeaderProps) {
+  const t = useTranslations();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(isLoggedIn);
@@ -65,14 +68,16 @@ export function Header({
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl text-white">PromptMarket</span>
+            <span className="font-bold text-xl text-white">
+              {t('common.brand')}
+            </span>
           </Link>
 
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="프롬프트 검색..."
+                placeholder={t('common.search.placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-gray-900 border-gray-700 text-white placeholder-gray-400"
@@ -85,8 +90,49 @@ export function Header({
               href="/prompts"
               className="text-gray-300 hover:text-white transition-colors"
             >
-              프롬프트
+              {t('nav.prompts')}
             </Link>
+
+            {/* Language Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="text-gray-300 hover:text-white px-2"
+                >
+                  EN / KO
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-36 bg-gray-900 border-gray-700 z-[60]"
+              >
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await fetch('/api/set-locale', {
+                      method: 'POST',
+                      body: JSON.stringify({ locale: 'en' }),
+                    });
+                    location.reload();
+                  }}
+                >
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await fetch('/api/set-locale', {
+                      method: 'POST',
+                      body: JSON.stringify({ locale: 'ko' }),
+                    });
+                    location.reload();
+                  }}
+                >
+                  한국어
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <ModeToggle />
 
             {loggedIn ? (
               <>
@@ -127,17 +173,17 @@ export function Header({
                   >
                     <DropdownMenuItem asChild>
                       <Link href="/profile" className="text-gray-300">
-                        내 프로필
+                        {t('nav.profile')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/admin/prompts" className="text-gray-300">
-                        프롬프트 관리
+                        {t('nav.adminPrompts')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/purchase-history" className="text-gray-300">
-                        구매 내역
+                        {t('nav.purchaseHistory')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-700" />
@@ -148,7 +194,7 @@ export function Header({
                       }}
                       className="text-gray-300"
                     >
-                      로그아웃
+                      {t('nav.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -163,7 +209,7 @@ export function Header({
                   }}
                   className="text-gray-300 hover:text-white"
                 >
-                  로그인
+                  {t('nav.login')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -172,13 +218,14 @@ export function Header({
                   }}
                   className="bg-white text-black hover:bg-gray-200"
                 >
-                  회원가입
+                  {t('nav.signup')}
                 </Button>
               </>
             )}
           </nav>
 
           <div className="flex md:hidden items-center space-x-2">
+            <ModeToggle />
             {loggedIn && (
               <Button
                 variant="ghost"
@@ -221,7 +268,7 @@ export function Header({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="프롬프트 검색..."
+                  placeholder={t('common.search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-gray-900 border-gray-700 text-white placeholder-gray-400"
@@ -236,7 +283,7 @@ export function Header({
                 className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                프롬프트
+                {t('nav.prompts')}
               </Link>
 
               {loggedIn ? (
@@ -246,21 +293,21 @@ export function Header({
                     className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    내 프로필
+                    {t('nav.profile')}
                   </Link>
                   <Link
                     href="/admin/prompts"
                     className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    프롬프트 관리
+                    {t('nav.adminPrompts')}
                   </Link>
                   <Link
                     href="/purchase-history"
                     className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    구매 내역
+                    {t('nav.purchaseHistory')}
                   </Link>
                   <button
                     onClick={() => {
@@ -270,7 +317,7 @@ export function Header({
                     }}
                     className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                   >
-                    로그아웃
+                    {t('nav.logout')}
                   </button>
                 </>
               ) : (
@@ -283,7 +330,7 @@ export function Header({
                     }}
                     className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                   >
-                    로그인
+                    {t('nav.login')}
                   </button>
                   <button
                     onClick={() => {
@@ -293,7 +340,7 @@ export function Header({
                     }}
                     className="block w-full text-left px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-md transition-colors"
                   >
-                    회원가입
+                    {t('nav.signup')}
                   </button>
                 </>
               )}

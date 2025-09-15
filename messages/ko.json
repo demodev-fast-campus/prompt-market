@@ -1,0 +1,18 @@
+{
+  "common": {
+    "brand": "PromptMarket",
+    "search": {
+      "placeholder": "프롬프트 검색..."
+    }
+  },
+  "nav": {
+    "prompts": "프롬프트",
+    "profile": "내 프로필",
+    "adminPrompts": "프롬프트 관리",
+    "purchaseHistory": "구매 내역",
+    "login": "로그인",
+    "signup": "회원가입",
+    "logout": "로그아웃",
+    "cart": "장바구니"
+  }
+}

@@ -5,7 +5,11 @@ import { GeistMono } from 'geist/font/mono';
 import { Analytics } from '@vercel/analytics/next';
 import { Suspense } from 'react';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
+import { cookies } from 'next/headers';
+import { locales, defaultLocale, loadMessages } from '@/i18n';
+import { IntlProvider } from '@/components/intl-provider';
 
 export const metadata: Metadata = {
   title: '프롬프트 마켓 - AI 프롬프트 거래소',
@@ -28,17 +32,46 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value;
+  const lang = (locales as readonly string[]).includes(cookieLocale ?? '')
+    ? (cookieLocale as (typeof locales)[number])
+    : defaultLocale;
+  const messages = await loadMessages(lang);
   return (
-    <html lang="ko" className="dark">
+    <html lang={lang} suppressHydrationWarning>
+      <head>
+        <link
+          rel="preconnect"
+          href="https://vitals.vercel-analytics.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://vitals.vercel-analytics.com" />
+        <link
+          rel="preconnect"
+          href="https://cdn.vercel-insights.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://cdn.vercel-insights.com" />
+      </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={null}>{children}</Suspense>
-        <Toaster />
-        <Analytics />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <IntlProvider locale={lang} messages={messages}>
+            <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
+            <Analytics />
+          </IntlProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,29 +1,63 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Search, ShoppingCart, User, Menu, X } from "lucide-react"
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
+
+import { storage } from '@/lib/utils';
 
 interface HeaderProps {
-  isLoggedIn?: boolean
-  cartItemCount?: number
-  onLogin?: () => void
-  onLogout?: () => void
+  isLoggedIn?: boolean;
+  cartItemCount?: number;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
-export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogout }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+export function Header({
+  isLoggedIn = false,
+  cartItemCount = 0,
+  onLogin,
+  onLogout,
+}: HeaderProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn);
+  const [cartCount, setCartCount] = useState<number>(cartItemCount);
+
+  useEffect(() => {
+    const user = storage.getUser();
+    setLoggedIn(user.isLoggedIn);
+    setCartCount(storage.getCart().length);
+
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { key: string };
+      if (!detail) return;
+      if (detail.key === storage.keys.user) {
+        setLoggedIn(storage.getUser().isLoggedIn);
+      }
+      if (detail.key === storage.keys.cart) {
+        setCartCount(storage.getCart().length);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pm_storage', onChange as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pm_storage', onChange as EventListener);
+      }
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
@@ -47,22 +81,30 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
           </div>
 
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/prompts" className="text-gray-300 hover:text-white transition-colors">
+            <Link
+              href="/prompts"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
               프롬프트
             </Link>
 
-            {isLoggedIn ? (
+            {loggedIn ? (
               <>
                 {/* Cart */}
-                <Button variant="ghost" size="icon" className="relative text-gray-300 hover:text-white" asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-gray-300 hover:text-white"
+                  asChild
+                >
                   <Link href="/cart">
                     <ShoppingCart className="h-5 w-5" />
-                    {cartItemCount > 0 && (
+                    {cartCount > 0 && (
                       <Badge
                         variant="destructive"
                         className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                       >
-                        {cartItemCount}
+                        {cartCount}
                       </Badge>
                     )}
                   </Link>
@@ -71,11 +113,18 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-gray-300 hover:text-white"
+                    >
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 bg-gray-900 border-gray-700 z-[60]"
+                  >
                     <DropdownMenuItem asChild>
                       <Link href="/profile" className="text-gray-300">
                         내 프로필
@@ -92,7 +141,13 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-700" />
-                    <DropdownMenuItem onClick={onLogout} className="text-gray-300">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        storage.setUser({ isLoggedIn: false });
+                        onLogout?.();
+                      }}
+                      className="text-gray-300"
+                    >
                       로그아웃
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -100,10 +155,23 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={onLogin} className="text-gray-300 hover:text-white">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    storage.setUser({ isLoggedIn: true });
+                    onLogin?.();
+                  }}
+                  className="text-gray-300 hover:text-white"
+                >
                   로그인
                 </Button>
-                <Button onClick={onLogin} className="bg-white text-black hover:bg-gray-200">
+                <Button
+                  onClick={() => {
+                    storage.setUser({ isLoggedIn: true });
+                    onLogin?.();
+                  }}
+                  className="bg-white text-black hover:bg-gray-200"
+                >
                   회원가입
                 </Button>
               </>
@@ -111,16 +179,21 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
           </nav>
 
           <div className="flex md:hidden items-center space-x-2">
-            {isLoggedIn && (
-              <Button variant="ghost" size="icon" className="relative text-gray-300 hover:text-white" asChild>
+            {loggedIn && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-gray-300 hover:text-white"
+                asChild
+              >
                 <Link href="/cart">
                   <ShoppingCart className="h-5 w-5" />
-                  {cartItemCount > 0 && (
+                  {cartCount > 0 && (
                     <Badge
                       variant="destructive"
                       className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                     >
-                      {cartItemCount}
+                      {cartCount}
                     </Badge>
                   )}
                 </Link>
@@ -132,7 +205,11 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
               className="text-gray-300 hover:text-white"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -162,7 +239,7 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                 프롬프트
               </Link>
 
-              {isLoggedIn ? (
+              {loggedIn ? (
                 <>
                   <Link
                     href="/profile"
@@ -187,8 +264,9 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                   </Link>
                   <button
                     onClick={() => {
-                      onLogout?.()
-                      setIsMobileMenuOpen(false)
+                      storage.setUser({ isLoggedIn: false });
+                      onLogout?.();
+                      setIsMobileMenuOpen(false);
                     }}
                     className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                   >
@@ -199,8 +277,9 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                 <>
                   <button
                     onClick={() => {
-                      onLogin?.()
-                      setIsMobileMenuOpen(false)
+                      storage.setUser({ isLoggedIn: true });
+                      onLogin?.();
+                      setIsMobileMenuOpen(false);
                     }}
                     className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                   >
@@ -208,8 +287,9 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
                   </button>
                   <button
                     onClick={() => {
-                      onLogin?.()
-                      setIsMobileMenuOpen(false)
+                      storage.setUser({ isLoggedIn: true });
+                      onLogin?.();
+                      setIsMobileMenuOpen(false);
                     }}
                     className="block w-full text-left px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-md transition-colors"
                   >
@@ -222,5 +302,5 @@ export function Header({ isLoggedIn = false, cartItemCount = 0, onLogin, onLogou
         )}
       </div>
     </header>
-  )
+  );
 }

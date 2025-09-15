@@ -1,89 +1,140 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Header } from "@/components/header"
-import { PromptCard } from "@/components/prompt-card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { useEffect, useState } from 'react';
+import { Header } from '@/components/header';
+import { PromptCard } from '@/components/prompt-card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { storage } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 // Mock data for prompts - updated to match the design
 const mockPrompts = [
   {
-    id: "1",
-    title: "AI 이미지 생성 마스터 프롬프트",
-    description: "Midjourney, DALL-E, Stable Diffusion 등 AI 이미지 생성 도구를 위한 전문 프롬프트 모음집입니다.",
+    id: '1',
+    title: 'AI 이미지 생성 마스터 프롬프트',
+    description:
+      'Midjourney, DALL-E, Stable Diffusion 등 AI 이미지 생성 도구를 위한 전문 프롬프트 모음집입니다.',
     price: 15000,
-    category: "이미지 생성",
+    category: '이미지 생성',
     rating: 4.8,
     reviewCount: 1234,
-    author: "프롬프트마스터",
-    thumbnail: "/marketing-copywriting.jpg",
+    author: '프롬프트마스터',
+    thumbnail: '/marketing-copywriting.jpg',
     isPremium: false,
   },
   {
-    id: "2",
-    title: "ChatGPT 마케팅 자료 생성 프롬프트",
-    description: "광고 카피부터 SNS 콘텐츠까지 ChatGPT를 활용한 마케팅 자료 생성 프롬프트입니다.",
-    price: 25000,
-    category: "마케팅",
-    rating: 4.9,
-    reviewCount: 2158,
-    author: "AI마케터",
-    thumbnail: "/digital-illustration-art.png",
+    id: '2',
+    title: '광고 문구 생성 프롬프트',
+    description: '효과적인 광고 문구를 생성하는 AI 프롬프트 모음집입니다.',
+    price: 20000,
+    category: '광고',
+    rating: 4.8,
+    reviewCount: 1890,
+    author: '광고전문가',
+    thumbnail: '/gen_ad_prompt.png',
     isPremium: true,
   },
   {
-    id: "3",
-    title: "한국 소설 아이디어 생성기",
-    description: "독창적인 소설 아이디어와 캐릭터를 생성하는 창작 전용 프롬프트입니다.",
+    id: '3',
+    title: '한국 소설 아이디어 생성기',
+    description:
+      '독창적인 소설 아이디어와 캐릭터를 생성하는 창작 전용 프롬프트입니다.',
     price: 12000,
-    category: "창작",
+    category: '창작',
     rating: 4.7,
     reviewCount: 987,
-    author: "작가김씨",
-    thumbnail: "/code-review-programming.jpg",
+    author: '작가김씨',
+    thumbnail: '/code-review-programming.jpg',
     isPremium: false,
   },
   {
-    id: "4",
-    title: "마케팅 카피라이팅 프롬프트",
-    description: "매출을 높이는 효과적인 마케팅 카피를 작성할 수 있는 프롬프트 모음집입니다.",
+    id: '4',
+    title: '마케팅 카피라이팅 프롬프트',
+    description:
+      '매출을 높이는 효과적인 마케팅 카피를 작성할 수 있는 프롬프트 모음집입니다.',
     price: 18000,
-    category: "마케팅",
+    category: '마케팅',
     rating: 4.6,
     reviewCount: 1567,
-    author: "마케팅전문가",
-    thumbnail: "/blog-writing-content.jpg",
+    author: '마케팅전문가',
+    thumbnail: '/blog-writing-content.jpg',
     isPremium: true,
   },
-]
+];
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [cartItemCount, setCartItemCount] = useState(0)
-  const [favorites, setFavorites] = useState<string[]>([])
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    const user = storage.getUser();
+    setIsLoggedIn(user.isLoggedIn);
+    setCartItemCount(storage.getCart().length);
+    setFavorites(storage.getFavorites());
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { key: string };
+      if (!detail) return;
+      if (detail.key === storage.keys.user)
+        setIsLoggedIn(storage.getUser().isLoggedIn);
+      if (detail.key === storage.keys.cart)
+        setCartItemCount(storage.getCart().length);
+      if (detail.key === storage.keys.favorites)
+        setFavorites(storage.getFavorites());
+    };
+    if (typeof window !== 'undefined')
+      window.addEventListener('pm_storage', onChange as EventListener);
+    return () => {
+      if (typeof window !== 'undefined')
+        window.removeEventListener('pm_storage', onChange as EventListener);
+    };
+  }, []);
 
   const handleLogin = () => {
-    setIsLoggedIn(true)
-  }
+    storage.setUser({ isLoggedIn: true });
+    setIsLoggedIn(true);
+  };
 
   const handleLogout = () => {
-    setIsLoggedIn(false)
-    setCartItemCount(0)
-    setFavorites([])
-  }
+    storage.setUser({ isLoggedIn: false });
+    setIsLoggedIn(false);
+    setCartItemCount(0);
+    setFavorites([]);
+  };
 
   const handleAddToCart = (id: string) => {
-    setCartItemCount((prev) => prev + 1)
-  }
+    const prompt = mockPrompts.find((p) => p.id === id);
+    if (!prompt) return;
+    const before = storage.getCart();
+    const isDup = before.some((x) => x.id === prompt.id);
+    const next = storage.addToCart({
+      id: prompt.id,
+      price: prompt.price,
+      title: prompt.title,
+      category: prompt.category,
+      author: prompt.author,
+      thumbnail: prompt.thumbnail,
+    });
+    setCartItemCount(next.length);
+    if (isDup) {
+      toast({ title: '이미 장바구니에 있습니다.' });
+    }
+  };
 
   const handleToggleFavorite = (id: string) => {
-    setFavorites((prev) => (prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]))
-  }
+    const next = storage.toggleFavorite(id);
+    setFavorites(next);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header isLoggedIn={isLoggedIn} cartItemCount={cartItemCount} onLogin={handleLogin} onLogout={handleLogout} />
+      <Header
+        isLoggedIn={isLoggedIn}
+        cartItemCount={cartItemCount}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+      />
 
       {/* Hero Section */}
       <section className="py-20 text-center">
@@ -94,18 +145,24 @@ export default function HomePage() {
             발견하고 판매하세요
           </h1>
           <p className="text-xl text-gray-400 mb-12 text-pretty max-w-2xl mx-auto">
-            전문가들이 만든 고품질 프롬프트를 구매하고, 나만의 프롬프트를 판매하여 수익을 창출하세요.
+            전문가들이 만든 고품질 프롬프트를 구매하고, 나만의 프롬프트를
+            판매하여 수익을 창출하세요.
           </p>
           <div className="flex justify-center space-x-4">
-            <Button size="lg" className="px-8 bg-white text-black hover:bg-gray-200" asChild>
+            <Button
+              size="lg"
+              className="px-8 bg-white text-black hover:bg-gray-200"
+              asChild
+            >
               <Link href="/prompts">프롬프트 둘러보기</Link>
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="px-8 border-gray-600 text-white hover:bg-gray-900 bg-transparent"
+              asChild
             >
-              판매자 되기
+              <Link href="/seller/waitlist">판매자 되기</Link>
             </Button>
           </div>
         </div>
@@ -116,8 +173,12 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold">인기 프롬프트</h2>
-            <Button variant="ghost" className="text-gray-400 hover:text-white">
-              전체 보기
+            <Button
+              variant="ghost"
+              className="text-gray-400 hover:text-white"
+              asChild
+            >
+              <Link href="/prompts">전체 보기</Link>
             </Button>
           </div>
 
@@ -230,5 +291,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

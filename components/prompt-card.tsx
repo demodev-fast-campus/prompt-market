@@ -1,24 +1,29 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Heart, ShoppingCart, Star } from "lucide-react"
-import Link from "next/link"
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Heart, ShoppingCart, Star } from 'lucide-react';
+import Link from 'next/link';
 
 interface PromptCardProps {
-  id: string
-  title: string
-  description: string
-  price: number
-  category: string
-  rating: number
-  reviewCount: number
-  author: string
-  thumbnail?: string
-  isFavorited?: boolean
-  onAddToCart?: (id: string) => void
-  onToggleFavorite?: (id: string) => void
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  rating: number;
+  reviewCount: number;
+  author: string;
+  thumbnail?: string;
+  isFavorited?: boolean;
+  onAddToCart?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
 }
 
 export function PromptCard({
@@ -41,24 +46,26 @@ export function PromptCard({
         <div className="relative aspect-video bg-muted rounded-t-lg overflow-hidden">
           {thumbnail ? (
             <img
-              src={thumbnail || "/placeholder.svg"}
+              src={thumbnail || '/placeholder.svg'}
               alt={title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">프롬프트 미리보기</span>
+              <span className="text-muted-foreground text-sm">
+                프롬프트 미리보기
+              </span>
             </div>
           )}
           <Button
             variant="ghost"
             size="icon"
             className={`absolute top-2 right-2 h-8 w-8 ${
-              isFavorited ? "text-red-500" : "text-white"
+              isFavorited ? 'text-red-500' : 'text-white'
             } hover:text-red-500`}
             onClick={() => onToggleFavorite?.(id)}
           >
-            <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+            <Heart className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
           </Button>
         </div>
       </CardHeader>
@@ -77,23 +84,33 @@ export function PromptCard({
         </div>
 
         <Link href={`/prompt/${id}`}>
-          <h3 className="font-semibold text-sm mb-2 line-clamp-2 hover:text-primary transition-colors">{title}</h3>
+          <h3 className="font-semibold text-sm mb-2 line-clamp-2 hover:text-primary transition-colors">
+            {title}
+          </h3>
         </Link>
 
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+          {description}
+        </p>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>by {author}</span>
-          <span className="font-semibold text-foreground">₩{price.toLocaleString()}</span>
+          <span className="font-semibold text-foreground">
+            ₩{price.toLocaleString()}
+          </span>
         </div>
       </CardContent>
 
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full" size="sm" onClick={() => onAddToCart?.(id)}>
+        <Button
+          className="w-full bg-white text-black hover:bg-gray-100"
+          size="sm"
+          onClick={() => onAddToCart?.(id)}
+        >
           <ShoppingCart className="h-4 w-4 mr-2" />
           장바구니 담기
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }

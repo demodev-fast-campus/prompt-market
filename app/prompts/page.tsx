@@ -104,7 +104,6 @@ const allPrompts = [
 ];
 
 export default function PromptsPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,15 +113,11 @@ export default function PromptsPage() {
   const PAGE_SIZE = 8;
 
   useEffect(() => {
-    const user = storage.getUser();
-    setIsLoggedIn(user.isLoggedIn);
     setCartItemCount(storage.getCart().length);
     setFavorites(storage.getFavorites());
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user)
-        setIsLoggedIn(storage.getUser().isLoggedIn);
       if (detail.key === storage.keys.cart)
         setCartItemCount(storage.getCart().length);
       if (detail.key === storage.keys.favorites)
@@ -135,18 +130,6 @@ export default function PromptsPage() {
         window.removeEventListener('pm_storage', onChange as EventListener);
     };
   }, []);
-
-  const handleLogin = () => {
-    storage.setUser({ isLoggedIn: true });
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    storage.setUser({ isLoggedIn: false });
-    setIsLoggedIn(false);
-    setCartItemCount(0);
-    setFavorites([]);
-  };
 
   const handleAddToCart = (id: string) => {
     const prompt = allPrompts.find((p) => p.id === id);
@@ -205,12 +188,7 @@ export default function PromptsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header cartItemCount={cartItemCount} />
 
       {/* Page Header */}
       <section className="py-12 border-b border-gray-800">

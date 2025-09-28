@@ -12,7 +12,7 @@ import { Heart, ShoppingCart, Star } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-interface PromptCardProps {
+interface PromptFields {
   id: string;
   title: string;
   description: string;
@@ -22,27 +22,51 @@ interface PromptCardProps {
   reviewCount: number;
   author: string;
   thumbnail?: string;
+}
+
+interface PromptCardProps extends Partial<PromptFields> {
+  // New style: pass the whole prompt object
+  prompt?: PromptFields;
+  // Legacy props continue to work (id, title, ...)
   isFavorited?: boolean;
   onAddToCart?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
   priority?: boolean;
 }
 
-export function PromptCard({
-  id,
-  title,
-  description,
-  price,
-  category,
-  rating,
-  reviewCount,
-  author,
-  thumbnail,
-  isFavorited = false,
-  onAddToCart,
-  onToggleFavorite,
-  priority,
-}: PromptCardProps) {
+export function PromptCard(props: PromptCardProps) {
+  const {
+    prompt,
+    isFavorited = false,
+    onAddToCart,
+    onToggleFavorite,
+    priority,
+  } = props;
+
+  // Merge: prefer prompt object if provided, otherwise fall back to individual props
+  const merged: PromptFields = {
+    id: prompt?.id ?? (props.id as string),
+    title: prompt?.title ?? (props.title as string),
+    description: prompt?.description ?? (props.description as string),
+    price: prompt?.price ?? (props.price as number),
+    category: prompt?.category ?? (props.category as string),
+    rating: prompt?.rating ?? (props.rating as number),
+    reviewCount: prompt?.reviewCount ?? (props.reviewCount as number),
+    author: prompt?.author ?? (props.author as string),
+    thumbnail: prompt?.thumbnail ?? props.thumbnail,
+  };
+
+  const {
+    id,
+    title,
+    description,
+    price,
+    category,
+    rating,
+    reviewCount,
+    author,
+    thumbnail,
+  } = merged;
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">

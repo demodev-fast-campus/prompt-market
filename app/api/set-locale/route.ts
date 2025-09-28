@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { locales } from '@/i18n';
+import { routing } from '@/i18n/routing';
 
 export async function POST(request: NextRequest) {
   const { locale } = (await request.json().catch(() => ({}))) as {
     locale?: string;
   };
-  if (!locale || !(locales as readonly string[]).includes(locale)) {
+  if (!locale || !routing.locales.includes(locale as any)) {
     return NextResponse.json(
       { ok: false, error: 'INVALID_LOCALE' },
       { status: 400 },

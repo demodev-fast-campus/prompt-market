@@ -40,7 +40,6 @@ const statusColors = {
 } as const;
 
 export default function PurchaseHistoryPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -48,16 +47,12 @@ export default function PurchaseHistoryPage() {
   const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
 
   useEffect(() => {
-    const user = storage.getUser();
-    setIsLoggedIn(user.isLoggedIn);
     setCartItemCount(storage.getCart().length);
     setPurchases(storage.getPurchases());
 
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user)
-        setIsLoggedIn(storage.getUser().isLoggedIn);
       if (detail.key === storage.keys.cart)
         setCartItemCount(storage.getCart().length);
       if (detail.key === storage.keys.purchases)
@@ -70,14 +65,6 @@ export default function PurchaseHistoryPage() {
         window.removeEventListener('pm_storage', onChange as EventListener);
     };
   }, []);
-
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
 
   const handleDownload = (downloadUrl: string, title: string) => {
     // Handle download logic
@@ -112,12 +99,7 @@ export default function PurchaseHistoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header cartItemCount={cartItemCount} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

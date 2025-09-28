@@ -15,7 +15,6 @@ import { storage } from '@/lib/utils';
 type CartItem = ReturnType<typeof storage.getCart>[number];
 
 export default function CartPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [couponCode, setCouponCode] = useState('');
@@ -25,8 +24,6 @@ export default function CartPage() {
   } | null>(null);
 
   useEffect(() => {
-    const user = storage.getUser();
-    setIsLoggedIn(user.isLoggedIn);
     const items = storage.getCart();
     setCartItems(items);
     setSelectedItems(items.map((i) => i.id));
@@ -34,8 +31,6 @@ export default function CartPage() {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user)
-        setIsLoggedIn(storage.getUser().isLoggedIn);
       if (detail.key === storage.keys.cart) {
         const list = storage.getCart();
         setCartItems(list);
@@ -51,14 +46,6 @@ export default function CartPage() {
         window.removeEventListener('pm_storage', onChange as EventListener);
     };
   }, []);
-
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
 
   const handleRemoveItem = (id: string) => {
     const next = storage.removeFromCart(id);
@@ -100,12 +87,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItems.length}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header cartItemCount={cartItems.length} />
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-8">

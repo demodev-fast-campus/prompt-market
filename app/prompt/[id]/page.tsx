@@ -99,15 +99,12 @@ const mockPromptDetail = {
 
 export default function PromptDetailPage() {
   const params = useParams();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [hasPurchased, setHasPurchased] = useState(false);
 
   useEffect(() => {
-    const user = storage.getUser();
-    setIsLoggedIn(user.isLoggedIn);
     setCartItemCount(storage.getCart().length);
     const id = String(params?.id ?? mockPromptDetail.id);
     setHasPurchased(storage.getPurchases().some((p) => p.id === id));
@@ -115,8 +112,6 @@ export default function PromptDetailPage() {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user)
-        setIsLoggedIn(storage.getUser().isLoggedIn);
       if (detail.key === storage.keys.cart)
         setCartItemCount(storage.getCart().length);
       if (detail.key === storage.keys.purchases)
@@ -131,18 +126,6 @@ export default function PromptDetailPage() {
         window.removeEventListener('pm_storage', onChange as EventListener);
     };
   }, [params?.id]);
-
-  const handleLogin = () => {
-    storage.setUser({ isLoggedIn: true });
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    storage.setUser({ isLoggedIn: false });
-    setIsLoggedIn(false);
-    setCartItemCount(0);
-    setIsFavorited(false);
-  };
 
   const handleAddToCart = () => {
     const id = String(params?.id ?? mockPromptDetail.id);
@@ -188,12 +171,7 @@ export default function PromptDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header cartItemCount={cartItemCount} />
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

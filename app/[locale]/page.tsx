@@ -77,92 +77,93 @@ export default function HomePage() {
       if (detail.key === storage.keys.favorites)
         setFavorites(storage.getFavorites());
     };
-    if (typeof window !== 'undefined')
+
+    if (typeof window !== 'undefined') {
       window.addEventListener('pm_storage', onChange as EventListener);
+    }
+
     return () => {
-      if (typeof window !== 'undefined')
+      if (typeof window !== 'undefined') {
         window.removeEventListener('pm_storage', onChange as EventListener);
+      }
     };
   }, []);
 
-  const handleAddToCart = (id: string) => {
-    const prompt = mockPrompts.find((p) => p.id === id);
-    if (!prompt) return;
-    const before = storage.getCart();
-    const isDup = before.some((x) => x.id === prompt.id);
-    const next = storage.addToCart({
-      id: prompt.id,
-      price: prompt.price,
-      title: prompt.title,
-      category: prompt.category,
-      author: prompt.author,
-      thumbnail: prompt.thumbnail,
+  const handleAddToCart = (promptId: string) => {
+    storage.addToCart(promptId);
+    toast({
+      title: '장바구니에 추가되었습니다',
+      description: '장바구니에서 확인하세요.',
     });
-    setCartItemCount(next.length);
-    if (isDup) {
-      toast({ title: '이미 장바구니에 있습니다.' });
-    }
   };
 
-  const handleToggleFavorite = (id: string) => {
-    const next = storage.toggleFavorite(id);
-    setFavorites(next);
+  const handleToggleFavorite = (promptId: string) => {
+    if (favorites.includes(promptId)) {
+      storage.removeFromFavorites(promptId);
+      toast({
+        title: '즐겨찾기에서 제거되었습니다',
+        description: '즐겨찾기 목록을 확인하세요.',
+      });
+    } else {
+      storage.addToFavorites(promptId);
+      toast({
+        title: '즐겨찾기에 추가되었습니다',
+        description: '즐겨찾기 목록을 확인하세요.',
+      });
+    }
   };
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Header cartItemCount={cartItemCount} />
 
-      <section className="py-20 text-center">
-        <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-bold mb-6 text-balance">
-            최고의 AI 프롬프트를
-            <br />
-            발견하고 판매하세요
+      {/* Hero Section */}
+      <section className="relative py-20 px-4 text-center">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            AI 프롬프트의{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+              새로운 경험
+            </span>
           </h1>
-          <p className="text-xl text-gray-400 mb-12 text-pretty max-w-2xl mx-auto">
-            전문가들이 만든 고품질 프롬프트를 구매하고, 나만의 프롬프트를
-            판매하여 수익을 창출하세요.
+          <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+            창의적인 아이디어부터 전문적인 비즈니스 솔루션까지, 당신이 찾던
+            완벽한 프롬프트를 만나보세요.
           </p>
-          <div className="flex justify-center space-x-4">
-            <Button
-              size="lg"
-              className="px-8 bg-white text-black hover:bg-gray-200"
-              asChild
-            >
-              <Link href="/prompts">프롬프트 둘러보기</Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="bg-white text-black hover:bg-gray-200">
+              프롬프트 둘러보기
             </Button>
             <Button
-              variant="outline"
               size="lg"
-              className="px-8 border-gray-600 text-white hover:bg-gray-900 bg-transparent"
-              asChild
+              variant="outline"
+              className="border-gray-600 text-white hover:bg-gray-800"
             >
-              <Link href="/seller/waitlist">판매자 되기</Link>
+              판매자 되기
             </Button>
           </div>
         </div>
       </section>
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
+      {/* Popular Prompts Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold">인기 프롬프트</h2>
-            <Button
-              variant="ghost"
-              className="text-gray-400 hover:text-white"
-              asChild
-            >
-              <Link href="/prompts">전체 보기</Link>
-            </Button>
+            <Link href="/prompts">
+              <Button
+                variant="outline"
+                className="border-gray-600 text-white hover:bg-gray-800"
+              >
+                전체 보기
+              </Button>
+            </Link>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {mockPrompts.map((prompt, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {mockPrompts.map((prompt) => (
               <PromptCard
                 key={prompt.id}
-                {...prompt}
-                priority={index === 0}
+                prompt={prompt}
                 isFavorited={favorites.includes(prompt.id)}
                 onAddToCart={() => handleAddToCart(prompt.id)}
                 onToggleFavorite={() => handleToggleFavorite(prompt.id)}
@@ -172,31 +173,47 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 border-t border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">10,000+</div>
-              <div className="text-gray-400">프롬프트</div>
+      {/* Features Section */}
+      <section className="py-16 px-4 bg-gray-900">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-12">
+            왜 PromptMarket을 선택해야 할까요?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6">
+              <div className="w-16 h-16 mx-auto mb-6 bg-blue-600 rounded-full flex items-center justify-center">
+                ⚡
+              </div>
+              <h3 className="text-xl font-semibold mb-4">빠른 결과</h3>
+              <p className="text-gray-400">
+                검증된 프롬프트로 즉시 원하는 결과를 얻으세요.
+              </p>
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">5,000+</div>
-              <div className="text-gray-400">활성 사용자</div>
+            <div className="p-6">
+              <div className="w-16 h-16 mx-auto mb-6 bg-purple-600 rounded-full flex items-center justify-center">
+                🎯
+              </div>
+              <h3 className="text-xl font-semibold mb-4">전문성</h3>
+              <p className="text-gray-400">
+                각 분야별 전문가들이 검증한 고품질 프롬프트만을 제공합니다.
+              </p>
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">98%</div>
-              <div className="text-gray-400">만족도</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">24/7</div>
-              <div className="text-gray-400">고객 지원</div>
+            <div className="p-6">
+              <div className="w-16 h-16 mx-auto mb-6 bg-green-600 rounded-full flex items-center justify-center">
+                💎
+              </div>
+              <h3 className="text-xl font-semibold mb-4">다양성</h3>
+              <p className="text-gray-400">
+                마케팅부터 창작까지, 모든 분야의 프롬프트를 한 곳에서.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="py-16 border-t border-gray-800">
-        <div className="container mx-auto px-4">
+      {/* Footer */}
+      <footer className="bg-gray-900 py-12 px-4">
+        <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="font-bold text-lg mb-4">PromptMarket</h3>

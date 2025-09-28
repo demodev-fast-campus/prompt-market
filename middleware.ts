@@ -1,37 +1,30 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import Negotiator from 'negotiator';
-import { match as matchLocale } from '@formatjs/intl-localematcher';
-import { defaultLocale, locales } from './i18n';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
-function detectLocale(request: NextRequest): string {
-  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
-  if (cookieLocale && (locales as readonly string[]).includes(cookieLocale)) {
-    return cookieLocale;
+const handleI18nRouting = createMiddleware(routing);
+
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/auth(.*)',
+  '/api/public(.*)',
+  '/(ko|en)',
+  '/(ko|en)/(.*)',
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
   }
 
-  const negotiatorHeaders: Record<string, string> = {};
-  request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
-  const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
-  return matchLocale(languages, locales as unknown as string[], defaultLocale);
-}
-
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.includes('/api/') ||
-    /\.(?:.*)$/.test(pathname)
-  ) {
-    return NextResponse.next();
-  }
-
-  const res = NextResponse.next();
-  const locale = detectLocale(request);
-  res.cookies.set('NEXT_LOCALE', locale, { path: '/' });
-  return res;
-}
+  return handleI18nRouting(req);
+});
 
 export const config = {
-  matcher: ['/((?!_next).*)'],
+  matcher: [
+    // Match all pathnames except for
+    // - … if they start with `/api`, `/_next` or `/_vercel`
+    // - … the ones containing a dot (e.g. `favicon.ico`)
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+  ],
 };

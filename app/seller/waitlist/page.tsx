@@ -11,8 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { storage } from '@/lib/utils';
 
 export default function SellerWaitlistPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(storage.getUser().isLoggedIn);
-  const [cartItemCount] = useState(storage.getCart().length);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [portfolio, setPortfolio] = useState('');
@@ -48,12 +46,7 @@ export default function SellerWaitlistPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={() => setIsLoggedIn(true)}
-        onLogout={() => setIsLoggedIn(false)}
-      />
+      <Header cartItemCount={storage.getCart().length} />
 
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto">

@@ -17,6 +17,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { storage } from '@/lib/utils';
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useClerk,
+  useUser,
+} from '@clerk/nextjs';
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -34,33 +43,38 @@ export function Header({
   const t = useTranslations();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn);
   const [cartCount, setCartCount] = useState<number>(cartItemCount);
+  const { signOut } = useClerk();
+  const { isSignedIn } = useUser();
+  const loggedIn = isSignedIn ?? isLoggedIn;
 
   useEffect(() => {
-    const user = storage.getUser();
-    setLoggedIn(user.isLoggedIn);
-    setCartCount(storage.getCart().length);
+    setCartCount(cartItemCount > 0 ? cartItemCount : storage.getCart().length);
 
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user) {
-        setLoggedIn(storage.getUser().isLoggedIn);
-      }
       if (detail.key === storage.keys.cart) {
         setCartCount(storage.getCart().length);
       }
     };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('pm_storage', onChange as EventListener);
     }
+
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('pm_storage', onChange as EventListener);
       }
     };
-  }, []);
+  }, [cartItemCount]);
+
+  const handleLogoutClick = async () => {
+    await signOut({ redirectUrl: '/' });
+    setCartCount(0);
+    onLogout?.();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
@@ -113,7 +127,9 @@ export function Header({
                       method: 'POST',
                       body: JSON.stringify({ locale: 'en' }),
                     });
-                    location.reload();
+                    const { pathname, search, hash } = window.location;
+                    const base = pathname.replace(/^\/(en|ko)(?=\/|$)/, '');
+                    window.location.href = `/en${base}${search}${hash}`;
                   }}
                 >
                   English
@@ -124,7 +140,10 @@ export function Header({
                       method: 'POST',
                       body: JSON.stringify({ locale: 'ko' }),
                     });
-                    location.reload();
+                    const { pathname, search, hash } = window.location;
+                    const base = pathname.replace(/^\/(en|ko)(?=\/|$)/, '');
+                    const nextPath = `/ko${base || ''}`;
+                    window.location.href = `${nextPath}${search}${hash}`;
                   }}
                 >
                   한국어
@@ -134,94 +153,77 @@ export function Header({
 
             <ModeToggle />
 
-            {loggedIn ? (
-              <>
-                {/* Cart */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-gray-300 hover:text-white"
-                  asChild
-                >
-                  <Link href="/cart">
-                    <ShoppingCart className="h-5 w-5" />
-                    {cartCount > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                      >
-                        {cartCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
+            <SignedIn>
+              {/* Cart */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-gray-300 hover:text-white"
+                asChild
+              >
+                <Link href="/cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {cartCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
 
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-gray-300 hover:text-white"
-                    >
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-56 bg-gray-900 border-gray-700 z-[60]"
+              {/* User Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <UserButton afterSignOutUrl="/" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 bg-gray-900 border-gray-700 z-[60]"
+                >
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="text-gray-300">
+                      {t('nav.profile')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/prompts" className="text-gray-300">
+                      {t('nav.adminPrompts')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/purchase-history" className="text-gray-300">
+                      {t('nav.purchaseHistory')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem
+                    onClick={handleLogoutClick}
+                    className="text-gray-300"
                   >
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="text-gray-300">
-                        {t('nav.profile')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/prompts" className="text-gray-300">
-                        {t('nav.adminPrompts')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/purchase-history" className="text-gray-300">
-                        {t('nav.purchaseHistory')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-700" />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        storage.setUser({ isLoggedIn: false });
-                        onLogout?.();
-                      }}
-                      className="text-gray-300"
-                    >
-                      {t('nav.logout')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
+                    {t('nav.logout')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SignedIn>
+
+            <SignedOut>
+              <SignInButton mode="modal">
                 <Button
                   variant="ghost"
-                  onClick={() => {
-                    storage.setUser({ isLoggedIn: true });
-                    onLogin?.();
-                  }}
                   className="text-gray-300 hover:text-white"
                 >
                   {t('nav.login')}
                 </Button>
-                <Button
-                  onClick={() => {
-                    storage.setUser({ isLoggedIn: true });
-                    onLogin?.();
-                  }}
-                  className="bg-white text-black hover:bg-gray-200"
-                >
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button className="bg-white text-black hover:bg-gray-200">
                   {t('nav.signup')}
                 </Button>
-              </>
-            )}
+              </SignUpButton>
+            </SignedOut>
           </nav>
 
           <div className="flex md:hidden items-center space-x-2">
@@ -286,64 +288,51 @@ export function Header({
                 {t('nav.prompts')}
               </Link>
 
-              {loggedIn ? (
-                <>
-                  <Link
-                    href="/profile"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.profile')}
-                  </Link>
-                  <Link
-                    href="/admin/prompts"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.adminPrompts')}
-                  </Link>
-                  <Link
-                    href="/purchase-history"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.purchaseHistory')}
-                  </Link>
-                  <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: false });
-                      onLogout?.();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                  >
-                    {t('nav.logout')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: true });
-                      onLogin?.();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                  >
+              <SignedIn>
+                <Link
+                  href="/profile"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.profile')}
+                </Link>
+                <Link
+                  href="/admin/prompts"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.adminPrompts')}
+                </Link>
+                <Link
+                  href="/purchase-history"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.purchaseHistory')}
+                </Link>
+                <button
+                  onClick={async () => {
+                    await handleLogoutClick();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                >
+                  {t('nav.logout')}
+                </button>
+              </SignedIn>
+
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button className="w-full text-left text-gray-300 hover:text-white">
                     {t('nav.login')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: true });
-                      onLogin?.();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-md transition-colors"
-                  >
+                  </Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button className="w-full bg-white text-black hover:bg-gray-200">
                     {t('nav.signup')}
-                  </button>
-                </>
-              )}
+                  </Button>
+                </SignUpButton>
+              </SignedOut>
             </div>
           </div>
         )}

@@ -1,108 +1,55 @@
-'use client';
-
-import { useEffect, useMemo, useState } from 'react';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Download,
   Search,
-  Filter,
-  ChevronDown,
   Calendar,
   Receipt,
   Star,
   RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
-import { storage } from '@/lib/utils';
+import { auth } from '@clerk/nextjs/server';
+import { getProfileIdByClerkId } from '@/lib/data/user';
+import { getCartCountByProfileId } from '@/lib/data/cart';
+import { getPurchasesByProfileId } from '@/lib/data/purchases';
 
-type PurchaseItem = ReturnType<typeof storage.getPurchases>[number];
+export default async function PurchaseHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const q = typeof params.q === 'string' ? params.q : '';
+  const sortBy = (typeof params.sort === 'string' ? params.sort : 'latest') as
+    | 'latest'
+    | 'oldest';
 
-const statusLabels = {
-  completed: '완료',
-  processing: '처리중',
-  cancelled: '취소됨',
-};
+  const { userId } = await auth();
+  const profileId = userId ? await getProfileIdByClerkId(userId) : null;
+  const cartCount = profileId ? await getCartCountByProfileId(profileId) : 0;
+  const rows = profileId ? await getPurchasesByProfileId(profileId) : [];
 
-const statusColors = {
-  completed: 'default',
-  processing: 'secondary',
-  cancelled: 'destructive',
-} as const;
-
-export default function PurchaseHistoryPage() {
-  const [cartItemCount, setCartItemCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('latest');
-  const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
-
-  useEffect(() => {
-    setCartItemCount(storage.getCart().length);
-    setPurchases(storage.getPurchases());
-
-    const onChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { key: string };
-      if (!detail) return;
-      if (detail.key === storage.keys.cart)
-        setCartItemCount(storage.getCart().length);
-      if (detail.key === storage.keys.purchases)
-        setPurchases(storage.getPurchases());
-    };
-    if (typeof window !== 'undefined')
-      window.addEventListener('pm_storage', onChange as EventListener);
-    return () => {
-      if (typeof window !== 'undefined')
-        window.removeEventListener('pm_storage', onChange as EventListener);
-    };
-  }, []);
-
-  const handleDownload = (downloadUrl: string, title: string) => {
-    // Handle download logic
-    console.log(`Downloading: ${title} from ${downloadUrl}`);
-  };
-
-  const items = useMemo(() => {
-    const list = purchases.map((p) => ({
-      id: p.id,
-      title: p.title ?? '구매한 프롬프트',
-      author: p.author ?? '작성자',
-      price: p.price ?? 0,
-      category: p.category ?? '기타',
-      thumbnail: p.thumbnail ?? '/placeholder.jpg',
-      purchasedAt: p.purchasedAt,
-    }));
-    const filtered = list.filter((item) =>
-      (item.title + item.author)
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()),
-    );
-    const sorted = [...filtered].sort((a, b) =>
-      sortBy === 'latest'
-        ? b.purchasedAt - a.purchasedAt
-        : a.purchasedAt - b.purchasedAt,
-    );
-    return sorted;
-  }, [purchases, searchQuery, sortBy]);
+  const filtered = rows.filter((r) =>
+    r.title.toLowerCase().includes(q.toLowerCase()),
+  );
+  const items = [...filtered].sort((a, b) =>
+    sortBy === 'latest'
+      ? b.purchasedAt - a.purchasedAt
+      : a.purchasedAt - b.purchasedAt,
+  );
 
   const totalSpent = items.reduce((sum, item) => sum + (item.price ?? 0), 0);
   const totalItems = items.length;
 
   return (
     <div className="min-h-screen bg-background">
-      <Header cartItemCount={cartItemCount} />
+      <Header cartItemCount={cartCount} />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold mb-2">구매 내역</h1>
@@ -111,12 +58,10 @@ export default function PurchaseHistoryPage() {
             </p>
           </div>
           <Button variant="outline">
-            <Receipt className="mr-2 h-4 w-4" />
-            전체 영수증 다운로드
+            <Receipt className="mr-2 h-4 w-4" /> 전체 영수증 다운로드
           </Button>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6 text-center">
@@ -143,64 +88,20 @@ export default function PurchaseHistoryPage() {
           </Card>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="프롬프트 제목이나 판매자로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+            <form>
+              <Input
+                name="q"
+                placeholder="프롬프트 제목 검색..."
+                defaultValue={q}
+                className="pl-10"
+              />
+            </form>
           </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                상태:{' '}
-                {filterStatus === 'all'
-                  ? '전체'
-                  : statusLabels[filterStatus as keyof typeof statusLabels]}
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setFilterStatus('all')}>
-                전체
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('completed')}>
-                완료
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('processing')}>
-                처리중
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('cancelled')}>
-                취소됨
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                정렬: {sortBy === 'latest' ? '최신순' : '오래된순'}
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setSortBy('latest')}>
-                최신순
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy('oldest')}>
-                오래된순
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
-        {/* Purchase List */}
         <div className="space-y-6">
           {items.length === 0 ? (
             <Card>
@@ -210,7 +111,7 @@ export default function PurchaseHistoryPage() {
                   구매 내역이 없습니다
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  {searchQuery
+                  {q
                     ? '검색 조건에 맞는 구매 내역이 없습니다.'
                     : '아직 구매한 프롬프트가 없습니다.'}
                 </p>
@@ -243,33 +144,21 @@ export default function PurchaseHistoryPage() {
                           {item.title}
                         </Link>
                       </h4>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        작성자: {item.author}
-                      </p>
                     </div>
                     <div className="flex flex-col items-end space-y-2 lg:space-y-0">
                       <div className="font-semibold text-right">
                         ₩{(item.price ?? 0).toLocaleString()}
                       </div>
                       <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs"
-                          onClick={() =>
-                            handleDownload('/signed-url', item.title)
-                          }
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          다운로드
+                        <Button size="sm" variant="outline" className="text-xs">
+                          <Download className="h-3 w-3 mr-1" /> 다운로드
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           className="text-xs bg-transparent"
                         >
-                          <Star className="h-3 w-3 mr-1" />
-                          리뷰
+                          <Star className="h-3 w-3 mr-1" /> 리뷰
                         </Button>
                       </div>
                     </div>
@@ -280,7 +169,6 @@ export default function PurchaseHistoryPage() {
           )}
         </div>
 
-        {/* Load More */}
         {items.length > 0 && (
           <div className="text-center mt-8">
             <Button variant="outline">

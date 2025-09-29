@@ -1,117 +1,21 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/header';
 import { PromptCard } from '@/components/prompt-card';
 import { Button } from '@/components/ui/button';
-import { storage } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
+import { getPrompts } from '@/lib/data/prompts';
+import { auth } from '@clerk/nextjs/server';
+import { getProfileIdByClerkId } from '@/lib/data/user';
+import { getCartCountByProfileId } from '@/lib/data/cart';
 
-const mockPrompts = [
-  {
-    id: '1',
-    title: 'AI 이미지 생성 마스터 프롬프트',
-    description:
-      'Midjourney, DALL-E, Stable Diffusion 등 AI 이미지 생성 도구를 위한 전문 프롬프트 모음집입니다.',
-    price: 15000,
-    category: '이미지 생성',
-    rating: 4.8,
-    reviewCount: 1234,
-    author: '프롬프트마스터',
-    thumbnail: '/marketing-copywriting.jpg',
-    isPremium: false,
-  },
-  {
-    id: '2',
-    title: '광고 문구 생성 프롬프트',
-    description: '효과적인 광고 문구를 생성하는 AI 프롬프트 모음집입니다.',
-    price: 20000,
-    category: '광고',
-    rating: 4.8,
-    reviewCount: 1890,
-    author: '광고전문가',
-    thumbnail: '/gen_ad_prompt.png',
-    isPremium: true,
-  },
-  {
-    id: '3',
-    title: '한국 소설 아이디어 생성기',
-    description:
-      '독창적인 소설 아이디어와 캐릭터를 생성하는 창작 전용 프롬프트입니다.',
-    price: 12000,
-    category: '창작',
-    rating: 4.7,
-    reviewCount: 987,
-    author: '작가김씨',
-    thumbnail: '/code-review-programming.jpg',
-    isPremium: false,
-  },
-  {
-    id: '4',
-    title: '마케팅 카피라이팅 프롬프트',
-    description:
-      '매출을 높이는 효과적인 마케팅 카피를 작성할 수 있는 프롬프트 모음집입니다.',
-    price: 18000,
-    category: '마케팅',
-    rating: 4.6,
-    reviewCount: 1567,
-    author: '마케팅전문가',
-    thumbnail: '/blog-writing-content.jpg',
-    isPremium: true,
-  },
-];
-
-export default function HomePage() {
-  const [cartItemCount, setCartItemCount] = useState(0);
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  useEffect(() => {
-    setCartItemCount(storage.getCart().length);
-    setFavorites(storage.getFavorites());
-    const onChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { key: string };
-      if (!detail) return;
-      if (detail.key === storage.keys.cart)
-        setCartItemCount(storage.getCart().length);
-      if (detail.key === storage.keys.favorites)
-        setFavorites(storage.getFavorites());
-    };
-    if (typeof window !== 'undefined')
-      window.addEventListener('pm_storage', onChange as EventListener);
-    return () => {
-      if (typeof window !== 'undefined')
-        window.removeEventListener('pm_storage', onChange as EventListener);
-    };
-  }, []);
-
-  const handleAddToCart = (id: string) => {
-    const prompt = mockPrompts.find((p) => p.id === id);
-    if (!prompt) return;
-    const before = storage.getCart();
-    const isDup = before.some((x) => x.id === prompt.id);
-    const next = storage.addToCart({
-      id: prompt.id,
-      price: prompt.price,
-      title: prompt.title,
-      category: prompt.category,
-      author: prompt.author,
-      thumbnail: prompt.thumbnail,
-    });
-    setCartItemCount(next.length);
-    if (isDup) {
-      toast({ title: '이미 장바구니에 있습니다.' });
-    }
-  };
-
-  const handleToggleFavorite = (id: string) => {
-    const next = storage.toggleFavorite(id);
-    setFavorites(next);
-  };
+export default async function HomePage() {
+  const items = await getPrompts({ limit: 8, sort: 'latest' });
+  const { userId } = await auth();
+  const profileId = userId ? await getProfileIdByClerkId(userId) : null;
+  const cartCount = profileId ? await getCartCountByProfileId(profileId) : 0;
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header cartItemCount={cartItemCount} />
+      <Header cartItemCount={cartCount} />
 
       <section className="py-20 text-center">
         <div className="container mx-auto px-4">
@@ -158,14 +62,19 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {mockPrompts.map((prompt, index) => (
+            {items.map((prompt, index) => (
               <PromptCard
                 key={prompt.id}
-                {...prompt}
+                id={prompt.id}
+                title={prompt.title}
+                description={prompt.description ?? ''}
+                price={prompt.price}
+                category={prompt.tags?.[0] ?? '기타'}
+                rating={prompt.rating ?? 0}
+                reviewCount={prompt.reviewCount ?? 0}
+                author={''}
+                thumbnail={prompt.thumbnail ?? undefined}
                 priority={index === 0}
-                isFavorited={favorites.includes(prompt.id)}
-                onAddToCart={() => handleAddToCart(prompt.id)}
-                onToggleFavorite={() => handleToggleFavorite(prompt.id)}
               />
             ))}
           </div>

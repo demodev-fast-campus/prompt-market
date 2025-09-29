@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -67,6 +68,22 @@ export function PromptCard(props: PromptCardProps) {
     author,
     thumbnail,
   } = merged;
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAddToCartInternal = async () => {
+    if (onAddToCart) return onAddToCart(id);
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId: id }),
+      });
+      // Optional: 에러 토스트/상태 업데이트는 상위에서 처리 가능
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <Card className="group hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
@@ -135,7 +152,8 @@ export function PromptCard(props: PromptCardProps) {
         <Button
           className="w-full bg-white text-black hover:bg-gray-100"
           size="sm"
-          onClick={() => onAddToCart?.(id)}
+          onClick={handleAddToCartInternal}
+          disabled={isLoading}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
           장바구니 담기

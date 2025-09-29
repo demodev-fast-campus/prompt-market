@@ -1,15 +1,17 @@
+import { NextResponse } from 'next/server';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import createMiddleware from 'next-intl/middleware';
+import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 
-const handleI18nRouting = createMiddleware(routing);
+const intlMiddleware = createIntlMiddleware(routing);
 
 const isPublicRoute = createRouteMatcher([
   '/',
+  '/prompts',
+  '/prompt/(.*)',
   '/auth(.*)',
-  '/api/public(.*)',
-  '/(ko|en)',
-  '/(ko|en)/(.*)',
+  '/api(.*)',
+  '/(ko|en)(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -17,14 +19,10 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect();
   }
 
-  return handleI18nRouting(req);
+  const intlResponse = intlMiddleware(req);
+  return intlResponse ?? NextResponse.next();
 });
 
 export const config = {
-  matcher: [
-    // Match all pathnames except for
-    // - … if they start with `/api`, `/_next` or `/_vercel`
-    // - … the ones containing a dot (e.g. `favicon.ico`)
-    '/((?!api|_next|_vercel|.*\\..*).*)',
-  ],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 };

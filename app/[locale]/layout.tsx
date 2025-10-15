@@ -1,5 +1,14 @@
 import type React from 'react';
 import type { Metadata } from 'next';
+import {
+  ClerkProvider,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from '@clerk/nextjs';
+import { koKR } from '@clerk/localizations';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { Analytics } from '@vercel/analytics/next';
@@ -81,15 +90,26 @@ export default async function LocaleLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextIntlClientProvider
-            locale={locale}
-            messages={messages}
-            timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
-          >
-            <Suspense fallback={null}>{children}</Suspense>
-            <Toaster />
-            <Analytics />
-          </NextIntlClientProvider>
+          <ClerkProvider localization={koKR}>
+            <NextIntlClientProvider
+              locale={locale}
+              messages={messages}
+              timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+            >
+              <header className="flex items-center justify-end gap-2 p-2">
+                <SignedOut>
+                  <SignInButton mode="modal" />
+                  <SignUpButton mode="modal" />
+                </SignedOut>
+                <SignedIn>
+                  <UserButton />
+                </SignedIn>
+              </header>
+              <Suspense fallback={null}>{children}</Suspense>
+              <Toaster />
+              <Analytics />
+            </NextIntlClientProvider>
+          </ClerkProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -15,7 +15,6 @@ import { storage } from '@/lib/utils';
 type CartItem = ReturnType<typeof storage.getCart>[number];
 
 export default function CartPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [couponCode, setCouponCode] = useState('');
@@ -25,8 +24,6 @@ export default function CartPage() {
   } | null>(null);
 
   useEffect(() => {
-    const user = storage.getUser();
-    setIsLoggedIn(user.isLoggedIn);
     const items = storage.getCart();
     setCartItems(items);
     setSelectedItems(items.map((i) => i.id));
@@ -34,8 +31,6 @@ export default function CartPage() {
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user)
-        setIsLoggedIn(storage.getUser().isLoggedIn);
       if (detail.key === storage.keys.cart) {
         const list = storage.getCart();
         setCartItems(list);
@@ -51,14 +46,6 @@ export default function CartPage() {
         window.removeEventListener('pm_storage', onChange as EventListener);
     };
   }, []);
-
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
 
   const handleRemoveItem = (id: string) => {
     const next = storage.removeFromCart(id);
@@ -100,12 +87,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItems.length}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-8">
@@ -190,11 +172,6 @@ export default function CartPage() {
                                   <span className="font-semibold">
                                     ₩{item.price.toLocaleString()}
                                   </span>
-                                  {item.originalPrice && (
-                                    <span className="text-sm text-muted-foreground line-through">
-                                      ₩{item.originalPrice.toLocaleString()}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
 
@@ -257,17 +234,12 @@ export default function CartPage() {
                     size="lg"
                     disabled={selectedItems.length === 0}
                     onClick={() => {
-                      // 결제 시뮬: 선택된 항목 purchases로 이동 후 cart 비우기
-                      selectedCartItems.forEach((item) => {
-                        storage.addPurchase(item.id, {
-                          title: item.title,
-                          price: item.price,
-                          category: item.category,
-                          author: item.author,
-                          thumbnail: item.thumbnail,
-                        });
-                      });
-                      storage.clearCart();
+                      const ids = selectedCartItems.map((i) => i.id);
+                      const qp = new URLSearchParams();
+                      qp.set('items', ids.join(','));
+                      qp.set('from', 'cart');
+                      // locale prefix를 유지하여 상위 경로의 checkout으로 이동
+                      window.location.href = `../checkout?${qp.toString()}`;
                     }}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />

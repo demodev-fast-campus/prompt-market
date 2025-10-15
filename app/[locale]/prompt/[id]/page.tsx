@@ -192,6 +192,8 @@ export default function PromptDetailPage() {
     setCartItemCount(next.length);
     if (isDup) {
       toast({ title: '이미 장바구니에 있습니다.' });
+    } else {
+      toast({ title: '장바구니에 추가되었습니다.' });
     }
   };
 
@@ -204,15 +206,10 @@ export default function PromptDetailPage() {
   const handlePurchase = () => {
     const id = String(params?.id ?? '');
     if (!prompt || !id) return;
-    storage.addPurchase(id, {
-      title: prompt.title,
-      price: prompt.price,
-      category: prompt.category ?? '기타',
-      author: prompt.author ?? '운영자',
-      thumbnail: prompt.thumbnail ?? undefined,
-    });
-    setHasPurchased(true);
-    storage.removeFromCart(id);
+    const qp = new URLSearchParams();
+    qp.set('items', id);
+    qp.set('from', 'detail');
+    window.location.href = `../../checkout?${qp.toString()}`;
   };
 
   return (
@@ -488,50 +485,49 @@ export default function PromptDetailPage() {
 
                 <Separator />
 
-                {/* Purchase Buttons or Purchased State */}
-                {hasPurchased ? (
-                  <div className="space-y-3">
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={() =>
-                        navigator.clipboard.writeText(
-                          '실제 프롬프트 본문 예시...',
-                        )
-                      }
-                    >
-                      프롬프트 복사
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full bg-transparent"
-                      size="lg"
-                      onClick={() => console.log('다운로드')}
-                    >
-                      파일 다운로드
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={handlePurchase}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      바로 구매하기
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full bg-transparent"
-                      size="lg"
-                      onClick={handleAddToCart}
-                    >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      장바구니 담기
-                    </Button>
-                  </div>
-                )}
+                {/* Purchase Buttons - Always Show for Testing */}
+                <div className="space-y-3">
+                  {hasPurchased && (
+                    <>
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            '실제 프롬프트 본문 예시...',
+                          )
+                        }
+                      >
+                        프롬프트 복사
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full bg-transparent"
+                        size="lg"
+                        onClick={() => console.log('다운로드')}
+                      >
+                        파일 다운로드
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handlePurchase}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    바로 구매하기
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full bg-transparent"
+                    size="lg"
+                    onClick={handleAddToCart}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    장바구니 담기
+                  </Button>
+                </div>
 
                 <Separator />
 

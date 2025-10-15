@@ -1,13 +1,6 @@
 import type React from 'react';
 import type { Metadata } from 'next';
-import {
-  ClerkProvider,
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import { koKR } from '@clerk/localizations';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
@@ -96,15 +89,6 @@ export default async function LocaleLayout({
               messages={messages}
               timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
             >
-              <header className="flex items-center justify-end gap-2 p-2">
-                <SignedOut>
-                  <SignInButton mode="modal" />
-                  <SignUpButton mode="modal" />
-                </SignedOut>
-                <SignedIn>
-                  <UserButton />
-                </SignedIn>
-              </header>
               <Suspense fallback={null}>{children}</Suspense>
               <Toaster />
               <Analytics />

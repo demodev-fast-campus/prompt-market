@@ -15,42 +15,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 
 import { storage } from '@/lib/utils';
 
-interface HeaderProps {
-  isLoggedIn?: boolean;
-  cartItemCount?: number;
-  onLogin?: () => void;
-  onLogout?: () => void;
-}
-
-export function Header({
-  isLoggedIn = false,
-  cartItemCount = 0,
-  onLogin,
-  onLogout,
-}: HeaderProps) {
+export function Header() {
   const t = useTranslations();
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn);
-  const [cartCount, setCartCount] = useState<number>(cartItemCount);
+  const [cartCount, setCartCount] = useState<number>(0);
 
   useEffect(() => {
-    const user = storage.getUser();
-    setLoggedIn(user.isLoggedIn);
     setCartCount(storage.getCart().length);
 
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
-      if (detail.key === storage.keys.user) {
-        setLoggedIn(storage.getUser().isLoggedIn);
-      }
       if (detail.key === storage.keys.cart) {
         setCartCount(storage.getCart().length);
       }
@@ -133,99 +116,27 @@ export function Header({
 
             <ModeToggle />
 
-            {loggedIn ? (
-              <>
-                {/* Cart */}
+            {/* Clerk Authentication */}
+            <SignedOut>
+              <SignInButton mode="modal">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="relative text-gray-300 hover:text-white"
-                  asChild
-                >
-                  <Link href="/cart">
-                    <ShoppingCart className="h-5 w-5" />
-                    {cartCount > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                      >
-                        {cartCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
-
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-gray-300 hover:text-white"
-                    >
-                      <User className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-56 bg-gray-900 border-gray-700 z-[60]"
-                  >
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="text-gray-300">
-                        {t('nav.profile')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/prompts" className="text-gray-300">
-                        {t('nav.adminPrompts')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/purchase-history" className="text-gray-300">
-                        {t('nav.purchaseHistory')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-700" />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        storage.setUser({ isLoggedIn: false });
-                        onLogout?.();
-                      }}
-                      className="text-gray-300"
-                    >
-                      {t('nav.logout')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    storage.setUser({ isLoggedIn: true });
-                    onLogin?.();
-                  }}
                   className="text-gray-300 hover:text-white"
                 >
                   {t('nav.login')}
                 </Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
                 <Button
-                  onClick={() => {
-                    storage.setUser({ isLoggedIn: true });
-                    onLogin?.();
-                  }}
                   className="bg-white text-black hover:bg-gray-200"
                 >
                   {t('nav.signup')}
                 </Button>
-              </>
-            )}
-          </nav>
+              </SignUpButton>
+            </SignedOut>
 
-          <div className="flex md:hidden items-center space-x-2">
-            <ModeToggle />
-            {loggedIn && (
+            <SignedIn>
+              {/* Cart */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -244,7 +155,75 @@ export function Header({
                   )}
                 </Link>
               </Button>
-            )}
+
+              {/* User Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-300 hover:text-white"
+                  >
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 bg-gray-900 border-gray-700 z-[60]"
+                >
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="text-gray-300">
+                      {t('nav.profile')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/prompts" className="text-gray-300">
+                      {t('nav.adminPrompts')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/purchase-history" className="text-gray-300">
+                      {t('nav.purchaseHistory')}
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Clerk UserButton */}
+              <UserButton
+                signInUrl="/"
+                appearance={{
+                  elements: {
+                    rootBox: "flex items-center",
+                    avatarBox: "w-8 h-8"
+                  }
+                }}
+              />
+            </SignedIn>
+          </nav>
+
+          <div className="flex md:hidden items-center space-x-2">
+            <ModeToggle />
+            <SignedIn>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-gray-300 hover:text-white"
+                asChild
+              >
+                <Link href="/cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {cartCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+            </SignedIn>
             <Button
               variant="ghost"
               size="icon"
@@ -285,64 +264,58 @@ export function Header({
                 {t('nav.prompts')}
               </Link>
 
-              {loggedIn ? (
-                <>
-                  <Link
-                    href="/profile"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.profile')}
-                  </Link>
-                  <Link
-                    href="/admin/prompts"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.adminPrompts')}
-                  </Link>
-                  <Link
-                    href="/purchase-history"
-                    className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('nav.purchaseHistory')}
-                  </Link>
+              <SignedOut>
+                <SignInButton mode="modal">
                   <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: false });
-                      onLogout?.();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
-                  >
-                    {t('nav.logout')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: true });
-                      onLogin?.();
-                      setIsMobileMenuOpen(false);
-                    }}
                     className="block w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                   >
                     {t('nav.login')}
                   </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
                   <button
-                    onClick={() => {
-                      storage.setUser({ isLoggedIn: true });
-                      onLogin?.();
-                      setIsMobileMenuOpen(false);
-                    }}
                     className="block w-full text-left px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-md transition-colors"
                   >
                     {t('nav.signup')}
                   </button>
-                </>
-              )}
+                </SignUpButton>
+              </SignedOut>
+
+              <SignedIn>
+                <Link
+                  href="/profile"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.profile')}
+                </Link>
+                <Link
+                  href="/admin/prompts"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.adminPrompts')}
+                </Link>
+                <Link
+                  href="/purchase-history"
+                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.purchaseHistory')}
+                </Link>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-gray-300">{t('nav.account')}</span>
+                  <UserButton
+                    signInUrl="/"
+                    appearance={{
+                      elements: {
+                        rootBox: "flex items-center",
+                        avatarBox: "w-8 h-8"
+                      }
+                    }}
+                  />
+                </div>
+              </SignedIn>
             </div>
           </div>
         )}

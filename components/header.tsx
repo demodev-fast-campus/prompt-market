@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,9 @@ export function Header({
   onLogout,
 }: HeaderProps) {
   const t = useTranslations();
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(isLoggedIn);
@@ -100,34 +103,30 @@ export function Header({
                   variant="ghost"
                   className="text-gray-300 hover:text-white px-2"
                 >
-                  EN / KO
+                  {locale.toUpperCase()}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
                 className="w-36 bg-gray-900 border-gray-700 z-[60]"
               >
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await fetch('/api/set-locale', {
-                      method: 'POST',
-                      body: JSON.stringify({ locale: 'en' }),
-                    });
-                    location.reload();
-                  }}
-                >
-                  English
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={pathname}
+                    locale="en"
+                    className={locale === 'en' ? 'bg-gray-800' : ''}
+                  >
+                    English
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await fetch('/api/set-locale', {
-                      method: 'POST',
-                      body: JSON.stringify({ locale: 'ko' }),
-                    });
-                    location.reload();
-                  }}
-                >
-                  한국어
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={pathname}
+                    locale="ko"
+                    className={locale === 'ko' ? 'bg-gray-800' : ''}
+                  >
+                    한국어
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

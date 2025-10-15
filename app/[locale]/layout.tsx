@@ -1,13 +1,41 @@
+import type React from 'react';
 import type { Metadata } from 'next';
-import { IntlProvider } from '@/components/intl-provider';
-import { loadMessages, locales, type Locale } from '@/i18n';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
+import { Analytics } from '@vercel/analytics/next';
+import { Suspense } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/theme-provider';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { hasLocale } from 'next-intl';
+import { routing } from '@/i18n/routing';
+import '../globals.css';
 
 export const metadata: Metadata = {
-  // Optional: per-locale metadata can be managed later if needed
+  title: '프롬프트 마켓 - AI 프롬프트 거래소',
+  description: 'AI 프롬프트를 사고팔 수 있는 한국 최대 마켓플레이스',
+  generator: 'v0.app',
+  openGraph: {
+    title: '프롬프트 마켓 - AI 프롬프트 거래소',
+    description: 'AI 프롬프트를 사고팔 수 있는 한국 최대 마켓플레이스',
+    siteName: '프롬프트 마켓',
+    locale: 'ko_KR',
+    type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: '프롬프트 마켓 OG 이미지',
+      },
+    ],
+  },
 };
 
-export async function generateStaticParams() {
-  return (locales as readonly string[]).map((locale) => ({ locale }));
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
 }
 
 export default async function LocaleLayout({
@@ -15,17 +43,54 @@ export default async function LocaleLayout({
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: Locale }>;
+  params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
-  const messages = await loadMessages(locale);
+
+  // Ensure that the incoming `locale` is valid
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
+
+  // Enable static rendering
+  setRequestLocale(locale);
+
+  // Fetch messages for the locale
+  const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body>
-        <IntlProvider locale={locale} messages={messages}>
-          {children}
-        </IntlProvider>
+      <head>
+        <link
+          rel="preconnect"
+          href="https://vitals.vercel-analytics.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://vitals.vercel-analytics.com" />
+        <link
+          rel="preconnect"
+          href="https://cdn.vercel-insights.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://cdn.vercel-insights.com" />
+      </head>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextIntlClientProvider
+            locale={locale}
+            messages={messages}
+            timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+          >
+            <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
+            <Analytics />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

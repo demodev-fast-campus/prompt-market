@@ -16,94 +16,21 @@ import {
 import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
-// Extended mock data for all prompts
-const allPrompts = [
-  {
-    id: '1',
-    title: 'ChatGPT 마케팅 자료 생성 프롬프트',
-    description:
-      '광고 카피부터 SNS 콘텐츠까지 ChatGPT를 활용한 마케팅 자료 생성 프롬프트입니다.',
-    price: 25000,
-    category: '마케팅',
-    rating: 4.9,
-    reviewCount: 2158,
-    author: 'AI마케터',
-    thumbnail: '/digital-illustration-art.png',
-    isPremium: false,
-    tags: ['ChatGPT', '마케팅', '마케팅'],
-  },
-  {
-    id: '2',
-    title: '광고 문구 생성 프롬프트',
-    description: '효과적인 광고 문구를 생성하는 AI 프롬프트 모음집입니다.',
-    price: 20000,
-    category: '광고',
-    rating: 4.8,
-    reviewCount: 1890,
-    author: '광고전문가',
-    thumbnail: '/marketing-copywriting.jpg',
-    isPremium: true,
-    tags: ['광고', '카피라이팅', 'AI'],
-  },
-  {
-    id: '3',
-    title: '마케팅 카피라이팅 프롬프트',
-    description:
-      '매출을 높이는 효과적인 마케팅 카피를 작성할 수 있는 프롬프트 모음집입니다.',
-    price: 18000,
-    category: '마케팅',
-    rating: 4.6,
-    reviewCount: 1567,
-    author: '마케팅전문가',
-    thumbnail: '/blog-writing-content.jpg',
-    isPremium: true,
-    tags: ['마케팅', '카피라이팅', '광고'],
-  },
-  {
-    id: '4',
-    title: 'AI 이미지 생성 마스터 프롬프트',
-    description:
-      'Midjourney, DALL-E, Stable Diffusion 등 AI 이미지 생성 도구를 위한 전문 프롬프트 모음집입니다.',
-    price: 15000,
-    category: '이미지 생성',
-    rating: 4.8,
-    reviewCount: 1234,
-    author: '프롬프트마스터',
-    thumbnail: '/marketing-copywriting.jpg',
-    isPremium: false,
-    tags: ['Midjourney', 'DALL-E', '이미지'],
-  },
-  {
-    id: '5',
-    title: '온라인 마케팅 대화 프롬프트',
-    description:
-      '고객과의 효과적인 온라인 마케팅 대화를 위한 AI 대화 프롬프트입니다.',
-    price: 10000,
-    category: '온라인',
-    rating: 4.5,
-    reviewCount: 756,
-    author: '온라인마케터',
-    thumbnail: '/code-review-programming.jpg',
-    isPremium: false,
-    tags: ['온라인', '마케팅', '대화'],
-  },
-  {
-    id: '6',
-    title: '한국 소설 아이디어 생성기',
-    description:
-      '독창적인 소설 아이디어와 캐릭터를 생성하는 창작 전용 프롬프트입니다.',
-    price: 12000,
-    category: '창작',
-    rating: 4.7,
-    reviewCount: 987,
-    author: '작가김씨',
-    thumbnail: '/social-media-content.png',
-    isPremium: false,
-    tags: ['소설', '창작', '아이디어'],
-  },
-];
+type PromptItem = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  rating: number;
+  reviewCount: number;
+  author: string;
+  thumbnail?: string | null;
+  tags?: string[] | null;
+};
 
 export default function PromptsPage() {
+  const [items, setItems] = useState<PromptItem[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -118,6 +45,30 @@ export default function PromptsPage() {
     setIsLoggedIn(user.isLoggedIn);
     setCartItemCount(storage.getCart().length);
     setFavorites(storage.getFavorites());
+    // Fetch prompts from API (public read)
+    fetch('/api/prompts')
+      .then((r) => r.json())
+      .then((json) => {
+        const fetched = (json.prompts || []).map(
+          (p: any): PromptItem => ({
+            id: String(p.id),
+            title: p.title,
+            description: p.description,
+            price: p.price ?? 0,
+            category: p.category ?? '기타',
+            rating: Number(p.rating ?? 0),
+            reviewCount: Number(p.review_count ?? 0),
+            author: p.author ?? '운영자',
+            thumbnail: p.thumbnail ?? null,
+            tags: p.tags ?? null,
+          }),
+        );
+        setItems(fetched);
+      })
+      .catch(() => {
+        // 실패 시 빈 목록 유지 (기존 더미는 관리자 페이지에서 시드됨)
+        setItems([]);
+      });
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
@@ -149,7 +100,7 @@ export default function PromptsPage() {
   };
 
   const handleAddToCart = (id: string) => {
-    const prompt = allPrompts.find((p) => p.id === id);
+    const prompt = items.find((p) => p.id === id);
     if (!prompt) return;
     const before = storage.getCart();
     const isDup = before.some((x) => x.id === prompt.id);
@@ -159,7 +110,7 @@ export default function PromptsPage() {
       title: prompt.title,
       category: prompt.category,
       author: prompt.author,
-      thumbnail: prompt.thumbnail,
+      thumbnail: prompt.thumbnail ?? undefined,
     });
     setCartItemCount(next.length);
     if (isDup) {
@@ -174,7 +125,7 @@ export default function PromptsPage() {
 
   // Filter/sort/page prompts
   const filteredPrompts = useMemo(() => {
-    const base = allPrompts.filter((prompt) => {
+    const base = items.filter((prompt) => {
       const matchesSearch =
         prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         prompt.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -189,13 +140,13 @@ export default function PromptsPage() {
         case '평점순':
           return [...base].sort((a, b) => b.rating - a.rating);
         case '최신순':
-          return [...base].reverse(); // mock: 뒤집기
+          return [...base];
         default:
           return base;
       }
     })();
     return sorted;
-  }, [searchQuery, selectedCategory, sortBy]);
+  }, [items, searchQuery, selectedCategory, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPrompts.length / PAGE_SIZE));
   const pagedPrompts = useMemo(() => {

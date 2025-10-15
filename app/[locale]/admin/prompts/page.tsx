@@ -88,25 +88,11 @@ export default function AdminPromptsPage() {
   const [prompts, setPrompts] = useState<AdminPrompt[]>([]);
 
   useEffect(() => {
-    const existing = storage.getPrompts<AdminPrompt>();
-    if (existing.length === 0) {
-      storage.setPrompts<AdminPrompt>(seedPrompts);
-      setPrompts(seedPrompts);
-    } else {
-      setPrompts(existing);
-    }
-    const onChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { key: string };
-      if (!detail) return;
-      if (detail.key === storage.keys.prompts)
-        setPrompts(storage.getPrompts<AdminPrompt>());
-    };
-    if (typeof window !== 'undefined')
-      window.addEventListener('pm_storage', onChange as EventListener);
-    return () => {
-      if (typeof window !== 'undefined')
-        window.removeEventListener('pm_storage', onChange as EventListener);
-    };
+    // 관리자 조회는 서버 API 사용 (service role)
+    fetch('/api/admin/prompts')
+      .then((r) => r.json())
+      .then((json) => setPrompts(json.prompts || []))
+      .catch(() => setPrompts([]));
   }, []);
 
   const filteredPrompts = prompts.filter((prompt) => {
@@ -121,28 +107,33 @@ export default function AdminPromptsPage() {
   const publishedCount = prompts.length;
   const pendingCount = 0;
 
-  const handleCreate = () => {
-    const id = String(Date.now());
-    const next: AdminPrompt = {
-      id,
-      title: `새 프롬프트 ${id}`,
+  const handleCreate = async () => {
+    const now = new Date().toISOString();
+    const payload = {
+      title: `새 프롬프트 ${Date.now()}`,
       description: '설명을 입력하세요',
       price: 10000,
       category: '기타',
       author: '운영자',
-      createdAt: new Date().toISOString().slice(0, 10),
+      created_at: now,
+      is_published: true,
     };
-    const updated = [next, ...storage.getPrompts<AdminPrompt>()];
-    storage.setPrompts(updated);
-    setPrompts(updated);
+    const res = await fetch('/api/admin/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (res.ok) {
+      setPrompts((prev) => [json.prompt, ...prev]);
+    }
   };
 
-  const handleDelete = (promptId: string) => {
-    const updated = storage
-      .getPrompts<AdminPrompt>()
-      .filter((p) => p.id !== promptId);
-    storage.setPrompts(updated);
-    setPrompts(updated);
+  const handleDelete = async (promptId: string) => {
+    const res = await fetch(`/api/admin/prompts?id=${promptId}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) setPrompts((prev) => prev.filter((p) => p.id !== promptId));
   };
 
   return (

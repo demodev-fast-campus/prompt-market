@@ -8,71 +8,49 @@ import Link from 'next/link';
 import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
-// Mock data for prompts - updated to match the design
-const mockPrompts = [
-  {
-    id: '1',
-    title: 'AI 이미지 생성 마스터 프롬프트',
-    description:
-      'Midjourney, DALL-E, Stable Diffusion 등 AI 이미지 생성 도구를 위한 전문 프롬프트 모음집입니다.',
-    price: 15000,
-    category: '이미지 생성',
-    rating: 4.8,
-    reviewCount: 1234,
-    author: '프롬프트마스터',
-    thumbnail: '/marketing-copywriting.jpg',
-    isPremium: false,
-  },
-  {
-    id: '2',
-    title: '광고 문구 생성 프롬프트',
-    description: '효과적인 광고 문구를 생성하는 AI 프롬프트 모음집입니다.',
-    price: 20000,
-    category: '광고',
-    rating: 4.8,
-    reviewCount: 1890,
-    author: '광고전문가',
-    thumbnail: '/gen_ad_prompt.png',
-    isPremium: true,
-  },
-  {
-    id: '3',
-    title: '한국 소설 아이디어 생성기',
-    description:
-      '독창적인 소설 아이디어와 캐릭터를 생성하는 창작 전용 프롬프트입니다.',
-    price: 12000,
-    category: '창작',
-    rating: 4.7,
-    reviewCount: 987,
-    author: '작가김씨',
-    thumbnail: '/code-review-programming.jpg',
-    isPremium: false,
-  },
-  {
-    id: '4',
-    title: '마케팅 카피라이팅 프롬프트',
-    description:
-      '매출을 높이는 효과적인 마케팅 카피를 작성할 수 있는 프롬프트 모음집입니다.',
-    price: 18000,
-    category: '마케팅',
-    rating: 4.6,
-    reviewCount: 1567,
-    author: '마케팅전문가',
-    thumbnail: '/blog-writing-content.jpg',
-    isPremium: true,
-  },
-];
+type PromptCardItem = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  rating: number;
+  reviewCount: number;
+  author: string;
+  thumbnail?: string | null;
+};
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [popular, setPopular] = useState<PromptCardItem[]>([]);
 
   useEffect(() => {
     const user = storage.getUser();
     setIsLoggedIn(user.isLoggedIn);
     setCartItemCount(storage.getCart().length);
     setFavorites(storage.getFavorites());
+    // Load popular prompts from Supabase (public)
+    fetch('/api/prompts')
+      .then((r) => r.json())
+      .then((json) => {
+        const items = (json.prompts || []).slice(0, 8).map(
+          (p: any): PromptCardItem => ({
+            id: String(p.id),
+            title: p.title,
+            description: p.description,
+            price: p.price ?? 0,
+            category: p.category ?? '기타',
+            rating: Number(p.rating ?? 0),
+            reviewCount: Number(p.review_count ?? 0),
+            author: p.author ?? '운영자',
+            thumbnail: p.thumbnail ?? null,
+          }),
+        );
+        setPopular(items);
+      })
+      .catch(() => setPopular([]));
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as { key: string };
       if (!detail) return;
@@ -104,7 +82,7 @@ export default function HomePage() {
   };
 
   const handleAddToCart = (id: string) => {
-    const prompt = mockPrompts.find((p) => p.id === id);
+    const prompt = popular.find((p) => p.id === id);
     if (!prompt) return;
     const before = storage.getCart();
     const isDup = before.some((x) => x.id === prompt.id);
@@ -114,7 +92,7 @@ export default function HomePage() {
       title: prompt.title,
       category: prompt.category,
       author: prompt.author,
-      thumbnail: prompt.thumbnail,
+      thumbnail: prompt.thumbnail ?? undefined,
     });
     setCartItemCount(next.length);
     if (isDup) {
@@ -182,19 +160,21 @@ export default function HomePage() {
             </Button>
           </div>
 
-          {/* Prompt Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {mockPrompts.map((prompt, index) => (
-              <PromptCard
-                key={prompt.id}
-                {...prompt}
-                priority={index === 0}
-                isFavorited={favorites.includes(prompt.id)}
-                onAddToCart={handleAddToCart}
-                onToggleFavorite={handleToggleFavorite}
-              />
-            ))}
-          </div>
+          {/* Prompt Grid (hide section if DB is empty) */}
+          {popular.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+              {popular.map((prompt, index) => (
+                <PromptCard
+                  key={prompt.id}
+                  {...prompt}
+                  priority={index === 0}
+                  isFavorited={favorites.includes(prompt.id)}
+                  onAddToCart={handleAddToCart}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

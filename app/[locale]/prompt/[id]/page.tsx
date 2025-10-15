@@ -26,6 +26,23 @@ import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
+type PromptDetail = {
+  id: string;
+  title: string;
+  description: string;
+  prompt_text?: string | null;
+  price: number;
+  category?: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  download_count?: number | null;
+  view_count?: number | null;
+  author?: string | null;
+  thumbnail?: string | null;
+  image_urls?: string[] | null;
+  tags?: string[] | null;
+};
+
 // Mock data for the prompt detail
 const mockPromptDetail = {
   id: '1',
@@ -104,6 +121,7 @@ export default function PromptDetailPage() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [hasPurchased, setHasPurchased] = useState(false);
+  const [prompt, setPrompt] = useState<PromptDetail | null>(null);
 
   useEffect(() => {
     const user = storage.getUser();
@@ -132,6 +150,15 @@ export default function PromptDetailPage() {
     };
   }, [params?.id]);
 
+  useEffect(() => {
+    const id = String(params?.id ?? '');
+    if (!id) return;
+    fetch(`/api/prompts?id=${id}`)
+      .then((r) => r.json())
+      .then((json) => setPrompt(json.prompt ?? null))
+      .catch(() => setPrompt(null));
+  }, [params?.id]);
+
   const handleLogin = () => {
     storage.setUser({ isLoggedIn: true });
     setIsLoggedIn(true);
@@ -145,12 +172,13 @@ export default function PromptDetailPage() {
   };
 
   const handleAddToCart = () => {
-    const id = String(params?.id ?? mockPromptDetail.id);
-    const title = mockPromptDetail.title;
-    const price = mockPromptDetail.price;
-    const category = mockPromptDetail.category;
-    const author = mockPromptDetail.author.name;
-    const thumbnail = mockPromptDetail.thumbnail;
+    const id = String(params?.id ?? '');
+    if (!prompt || !id) return;
+    const title = prompt.title;
+    const price = prompt.price;
+    const category = prompt.category ?? '기타';
+    const author = prompt.author ?? '운영자';
+    const thumbnail = prompt.thumbnail ?? undefined;
     const before = storage.getCart();
     const isDup = before.some((x) => x.id === id);
     const next = storage.addToCart({
@@ -168,19 +196,20 @@ export default function PromptDetailPage() {
   };
 
   const handleToggleFavorite = () => {
-    const id = String(params?.id ?? mockPromptDetail.id);
+    const id = String(params?.id ?? '');
     const next = storage.toggleFavorite(id);
     setIsFavorited(next.includes(id));
   };
 
   const handlePurchase = () => {
-    const id = String(params?.id ?? mockPromptDetail.id);
+    const id = String(params?.id ?? '');
+    if (!prompt || !id) return;
     storage.addPurchase(id, {
-      title: mockPromptDetail.title,
-      price: mockPromptDetail.price,
-      category: mockPromptDetail.category,
-      author: mockPromptDetail.author.name,
-      thumbnail: mockPromptDetail.thumbnail,
+      title: prompt.title,
+      price: prompt.price,
+      category: prompt.category ?? '기타',
+      author: prompt.author ?? '운영자',
+      thumbnail: prompt.thumbnail ?? undefined,
     });
     setHasPurchased(true);
     storage.removeFromCart(id);
@@ -204,10 +233,11 @@ export default function PromptDetailPage() {
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-4">
                 <Image
                   src={
-                    mockPromptDetail.images[selectedImageIndex] ||
-                    '/placeholder.svg'
+                    (prompt?.image_urls || [prompt?.thumbnail])?.[
+                      selectedImageIndex
+                    ] || '/placeholder.svg'
                   }
-                  alt={mockPromptDetail.title}
+                  alt={prompt?.title || 'prompt'}
                   fill
                   priority
                   sizes="(min-width: 1024px) 66vw, 100vw"
@@ -215,25 +245,27 @@ export default function PromptDetailPage() {
                 />
               </div>
               <div className="flex space-x-2">
-                {mockPromptDetail.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                      selectedImageIndex === index
-                        ? 'border-primary'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    <Image
-                      src={image || '/placeholder.svg'}
-                      alt={`Preview ${index + 1}`}
-                      width={80}
-                      height={80}
-                      className="object-cover w-full h-full"
-                    />
-                  </button>
-                ))}
+                {(prompt?.image_urls || [prompt?.thumbnail])
+                  .filter(Boolean)
+                  .map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                        selectedImageIndex === index
+                          ? 'border-primary'
+                          : 'border-transparent'
+                      }`}
+                    >
+                      <Image
+                        src={image || '/placeholder.svg'}
+                        alt={`Preview ${index + 1}`}
+                        width={80}
+                        height={80}
+                        className="object-cover w-full h-full"
+                      />
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -241,9 +273,7 @@ export default function PromptDetailPage() {
             <Tabs defaultValue="description" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="description">상세 설명</TabsTrigger>
-                <TabsTrigger value="reviews">
-                  리뷰 ({mockPromptDetail.reviewCount})
-                </TabsTrigger>
+                <TabsTrigger value="reviews">리뷰</TabsTrigger>
                 <TabsTrigger value="author">판매자 정보</TabsTrigger>
               </TabsList>
 
@@ -252,10 +282,12 @@ export default function PromptDetailPage() {
                   <CardContent className="p-6">
                     <div className="prose max-w-none">
                       <p className="text-muted-foreground mb-4">
-                        {mockPromptDetail.description}
+                        {prompt?.description}
                       </p>
                       <div className="whitespace-pre-line">
-                        {mockPromptDetail.longDescription}
+                        {hasPurchased
+                          ? prompt?.prompt_text || ''
+                          : '구매 후 본문을 확인할 수 있습니다.'}
                       </div>
 
                       <div className="mt-6">
@@ -273,7 +305,7 @@ export default function PromptDetailPage() {
                       <div className="mt-6">
                         <h4 className="font-semibold mb-3">태그</h4>
                         <div className="flex flex-wrap gap-2">
-                          {mockPromptDetail.tags.map((tag) => (
+                          {(prompt?.tags || []).map((tag) => (
                             <Badge key={tag} variant="outline">
                               {tag}
                             </Badge>
@@ -339,35 +371,26 @@ export default function PromptDetailPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage
-                          src={
-                            mockPromptDetail.author.avatar || '/placeholder.svg'
-                          }
-                        />
+                        <AvatarImage src={'/placeholder-user.jpg'} />
                         <AvatarFallback>
-                          {mockPromptDetail.author.name[0]}
+                          {prompt?.author?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg">
-                          {mockPromptDetail.author.name}
+                          {prompt?.author || '운영자'}
                         </h3>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
                           <div className="flex items-center">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                            {mockPromptDetail.author.rating}
+                            {prompt?.rating ?? 0}
                           </div>
-                          <div>
-                            {mockPromptDetail.author.promptCount}개 프롬프트
-                          </div>
-                          <div>
-                            {mockPromptDetail.author.totalSales.toLocaleString()}
-                            회 판매
-                          </div>
+                          <div>프롬프트</div>
+                          <div>판매</div>
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground mb-4">
                           <Calendar className="h-4 w-4 mr-1" />
-                          {mockPromptDetail.author.joinDate} 가입
+                          가입일 정보 없음
                         </div>
                         <Button variant="outline" size="sm">
                           판매자 프로필 보기

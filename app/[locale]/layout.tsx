@@ -4,7 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { koKR } from '@clerk/localizations';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import { Analytics } from '@vercel/analytics/next';
+import { Analytics } from '@vercel/analytics/react';
 import { Suspense } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -13,6 +13,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { hasLocale } from 'next-intl';
 import { routing } from '@/i18n/routing';
+import { GoogleAnalyticsClient } from '@/components/ga';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -92,6 +93,11 @@ export default async function LocaleLayout({
               <Suspense fallback={null}>{children}</Suspense>
               <Toaster />
               <Analytics />
+              {process.env.NODE_ENV === 'production' ? (
+                <Suspense fallback={null}>
+                  <GoogleAnalyticsClient />
+                </Suspense>
+              ) : null}
             </NextIntlClientProvider>
           </ClerkProvider>
         </ThemeProvider>

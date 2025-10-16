@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Header } from '@/components/header';
 import { PromptCard } from '@/components/prompt-card';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -107,12 +107,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
+      <Header />
 
       {/* Hero Section */}
       <section className="py-20 text-center">
@@ -166,7 +161,7 @@ export default function HomePage() {
               {popular.map((prompt, index) => (
                 <PromptCard
                   key={prompt.id}
-                  {...prompt}
+                  {...{ ...prompt, thumbnail: prompt.thumbnail ?? undefined }}
                   priority={index === 0}
                   isFavorited={favorites.includes(prompt.id)}
                   onAddToCart={handleAddToCart}

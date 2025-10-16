@@ -25,6 +25,7 @@ import {
 import { storage } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import Script from 'next/script';
 
 type PromptDetail = {
   id: string;
@@ -214,12 +215,51 @@ export default function PromptDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isLoggedIn={isLoggedIn}
-        cartItemCount={cartItemCount}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
+      {/* Product JSON-LD for SEO */}
+      <Script
+        id="product-jsonld"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: prompt?.title || mockPromptDetail.title,
+            description: prompt?.description || mockPromptDetail.description,
+            image:
+              (prompt?.image_urls && prompt?.image_urls[0]) ||
+              prompt?.thumbnail ||
+              mockPromptDetail.thumbnail,
+            sku: String((prompt?.id ?? params?.id) || mockPromptDetail.id),
+            brand: {
+              '@type': 'Brand',
+              name: prompt?.author || '운영자',
+            },
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: Number(
+                prompt?.rating ?? mockPromptDetail.rating ?? 0,
+              ),
+              reviewCount: Number(
+                prompt?.review_count ?? mockPromptDetail.reviewCount ?? 0,
+              ),
+            },
+            offers: {
+              '@type': 'Offer',
+              priceCurrency: 'KRW',
+              price: Number(prompt?.price ?? mockPromptDetail.price ?? 0),
+              availability: 'https://schema.org/InStock',
+              url: `${
+                process.env.NEXT_PUBLIC_SITE_URL ||
+                'https://prompt.market.example'
+              }/ko/prompt/${String(
+                (prompt?.id ?? params?.id) || mockPromptDetail.id,
+              )}`,
+            },
+          }),
+        }}
       />
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -510,11 +550,7 @@ export default function PromptDetailPage() {
                       </Button>
                     </>
                   )}
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handlePurchase}
-                  >
+                  <Button className="w-full" size="lg" onClick={handlePurchase}>
                     <Download className="mr-2 h-4 w-4" />
                     바로 구매하기
                   </Button>

@@ -17,15 +17,29 @@ import { GoogleAnalyticsClient } from '@/components/ga';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: '프롬프트 마켓 - AI 프롬프트 거래소',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://prompt.market.example',
+  ),
+  title: {
+    default: '프롬프트 마켓 - AI 프롬프트 거래소',
+    template: '%s | 프롬프트 마켓',
+  },
   description: 'AI 프롬프트를 사고팔 수 있는 한국 최대 마켓플레이스',
   generator: 'v0.app',
+  alternates: {
+    canonical: '/',
+    languages: {
+      ko: '/ko',
+      en: '/en',
+    },
+  },
   openGraph: {
     title: '프롬프트 마켓 - AI 프롬프트 거래소',
     description: 'AI 프롬프트를 사고팔 수 있는 한국 최대 마켓플레이스',
     siteName: '프롬프트 마켓',
     locale: 'ko_KR',
     type: 'website',
+    url: '/',
     images: [
       {
         url: '/og-image.png',
@@ -34,6 +48,12 @@ export const metadata: Metadata = {
         alt: '프롬프트 마켓 OG 이미지',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '프롬프트 마켓 - AI 프롬프트 거래소',
+    description: 'AI 프롬프트를 사고팔 수 있는 한국 최대 마켓플레이스',
+    images: ['/og-image.png'],
   },
 };
 
@@ -64,6 +84,50 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {/* Organization / WebSite JSON-LD */}
+        <script
+          type="application/ld+json"
+          // Note: keep JSON.stringify to avoid hydration issues
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: '프롬프트 마켓',
+              url:
+                process.env.NEXT_PUBLIC_SITE_URL ||
+                'https://prompt.market.example',
+              logo: new URL(
+                '/placeholder-logo.png',
+                process.env.NEXT_PUBLIC_SITE_URL ||
+                  'https://prompt.market.example',
+              ).toString(),
+              sameAs: [
+                // Fill when available
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: '프롬프트 마켓',
+              url:
+                process.env.NEXT_PUBLIC_SITE_URL ||
+                'https://prompt.market.example',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: `${
+                  process.env.NEXT_PUBLIC_SITE_URL ||
+                  'https://prompt.market.example'
+                }/ko/prompts?q={search_term_string}`,
+                'query-input': 'required name=search_term_string',
+              },
+            }),
+          }}
+        />
         <link
           rel="preconnect"
           href="https://vitals.vercel-analytics.com"
